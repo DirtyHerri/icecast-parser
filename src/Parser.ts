@@ -1,7 +1,7 @@
+import type * as coreHttp from 'http';
+import { http, https } from 'follow-redirects';
 import { EventEmitter } from 'events';
 import { StreamReader } from './StreamReader';
-import http from 'http';
-import https from 'https';
 
 export interface ParserOptions {
   autoUpdate: boolean
@@ -28,8 +28,9 @@ export declare interface Parser {
 }
 
 export class Parser extends EventEmitter {
+  private requestTimeout: ReturnType<typeof setTimeout> | null;
   private previousMetadata: Map<string, string> = new Map<string, string>();
-  private readonly options: ParserOptions = {
+  private options: ParserOptions = {
     autoUpdate: true,
     emptyInterval: 5 * 60,
     errorInterval: 10 * 60,
@@ -43,11 +44,40 @@ export class Parser extends EventEmitter {
   public constructor (options: Partial<ParserOptions>) {
     super();
 
-    this.options = { ...this.options, ...options };
+    this.requestTimeout = null;
+    this.setConfig(options);
     this.queueRequest();
   }
 
-  protected onRequestResponse (response: http.IncomingMessage): void {
+  public makeRequest (): void {
+    const request = this.options.url.startsWith('https://')
+      ? https.request(this.options.url)
+      : http.request(this.options.url);
+
+    request.setHeader('Icy-MetaData', '1');
+    request.setHeader('User-Agent', this.options.userAgent);
+    request.once('socket', (socket: NodeJS.Socket) => socket.once('end', this.onSocketEnd.bind(this)));
+    request.once('response', this.onRequestResponse.bind(this));
+    request.once('error', this.onRequestError.bind(this));
+    request.end();
+  }
+
+  public setConfig (options: Partial<ParserOptions>): void {
+    this.options = { ...this.options, ...options };
+  }
+
+  public getConfig (key: keyof ParserOptions): string|number|boolean {
+    return this.options[key];
+  }
+
+  public clearQueue (): void {
+    if (this.requestTimeout !== null) {
+      clearTimeout(this.requestTimeout);
+    }
+    this.requestTimeout = null;
+  }
+
+  protected onRequestResponse (response: coreHttp.IncomingMessage): void {
     const icyMetaInt = response.headers['icy-metaint'];
 
     if (typeof icyMetaInt === 'undefined') {
@@ -85,20 +115,7 @@ export class Parser extends EventEmitter {
     }
   }
 
-  protected makeRequest (): void {
-    const request = this.options.url.startsWith('https://')
-      ? https.request(this.options.url)
-      : http.request(this.options.url);
-
-    request.setHeader('Icy-MetaData', '1');
-    request.setHeader('User-Agent', this.options.userAgent);
-    request.once('socket', (socket) => socket.once('end', this.onSocketEnd.bind(this)));
-    request.once('response', this.onRequestResponse.bind(this));
-    request.once('error', this.onRequestError.bind(this));
-    request.end();
-  }
-
-  protected destroyResponse (response: http.IncomingMessage): void {
+  protected destroyResponse (response: coreHttp.IncomingMessage): void {
     if (!this.options.keepListen) {
       response.destroy();
     }
@@ -111,7 +128,8 @@ export class Parser extends EventEmitter {
   }
 
   protected queueRequest (timeout = 0): void {
-    setTimeout(this.makeRequest.bind(this), timeout * 1000);
+    this.clearQueue();
+    this.requestTimeout = setTimeout(this.makeRequest.bind(this), timeout * 1000);
   }
 
   protected isMetadataChanged (metadata: Map<string, string>): boolean {

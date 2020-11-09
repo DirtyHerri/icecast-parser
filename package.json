@@ -6,21 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ghaiklor/icecast-parser.git"
-  },
-  "author": {
-    "name": "Eugene Obrezkov",
-    "email": "ghaiklor@gmail.com",
-    "url": "https://ghaiklor.com"
-  },
-  "bugs": {
-    "url": "https://github.com/ghaiklor/icecast-parser/issues",
-    "email": "ghaiklor@gmail.com"
+    "url": "https://github.com/DirtyHerri/icecast-parser.git"
   },
   "engines": {
     "node": ">=14"
   },
-  "homepage": "https://github.com/ghaiklor/icecast-parser",
+  "homepage": "https://github.com/DirtyHerri/icecast-parser",
   "keywords": [
     "shoutcast",
     "SHOUTcast",
@@ -39,7 +30,7 @@
     "all": "npm run clean && npm run build && npm run test && npm run lint",
     "build": "tsc",
     "changelog": "standard-changelog -i CHANGELOG.md --same-file",
-    "clean": "rm -rf coverage dist",
+    "clean": "shx rm -rf coverage dist",
     "commit": "git-cz",
     "lint": "eslint --fix .",
     "prepublishOnly": "npm run all",
@@ -47,6 +38,7 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@types/follow-redirects": "^1.13.0",
     "@types/jest": "26.0.14",
     "@typescript-eslint/eslint-plugin": "4.2.0",
     "@typescript-eslint/parser": "4.2.0",
@@ -59,8 +51,14 @@
     "eslint-plugin-standard": "4.0.1",
     "git-cz": "4.7.1",
     "jest": "26.4.2",
+    "shx": "^0.3.3",
     "standard-changelog": "2.0.24",
     "ts-jest": "26.4.0",
     "typescript": "4.0.3"
+  },
+  "dependencies": {
+    "@types/charset-detector": "^0.0.0",
+    "charset-detector": "^0.0.2",
+    "follow-redirects": "^1.13.0"
   }
 }

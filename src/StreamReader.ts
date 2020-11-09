@@ -1,4 +1,6 @@
 import { Transform } from 'stream';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import detect = require('charset-detector');
 
 export type Trampoline<T> = T | ((...args: never[]) => Trampoline<T>);
 export type TransformCallback = (error: Error | null | undefined, data?: Buffer) => void;
@@ -13,11 +15,23 @@ const enum STATES {
 }
 
 function parseMetadata (metadata: Buffer): Map<string, string> {
+  let charset: BufferEncoding = 'utf8';
+  if (Buffer.isBuffer(metadata)) {
+    const charsetMatch = detect(metadata);
+    if (charsetMatch.length >= 1) {
+      // eslint-disable-next-line no-warning-comments
+      // TODO detect more charsets
+      charset = charsetMatch[0].charsetName === 'ISO-8859-1' ? 'latin1' : charset;
+    }
+  }
+
   const map = new Map<string, string>();
-  const data = metadata.toString('utf8');
+  const data = metadata.toString(charset);
   const parts = [...data.replace(/\0*$/u, '').matchAll(METADATA_REGEX)];
 
-  parts.forEach((part) => map.set(part.groups?.key ?? '', part.groups?.value ?? ''));
+  parts.forEach((part) => {
+    map.set(part.groups?.key ?? '', part.groups?.value ?? '');
+  });
 
   return map;
 }

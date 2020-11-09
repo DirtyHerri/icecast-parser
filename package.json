@@ -1,5 +1,5 @@
 {
-  "name": "icecast-parser",
+  "name": "@dirtyherri/icecast-parser",
   "version": "4.0.2",
   "description": "Node.js module for getting and parsing metadata from SHOUTcast/Icecast radio streams",
   "main": "dist/Parser.js",
